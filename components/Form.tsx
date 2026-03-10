@@ -1,12 +1,14 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, redirect } from "next/navigation";
+import Link from "next/link";
 
 export default function Form() {
-  
+  const router = useRouter();
   const [formData, setFormData] = useState({
     name: "",
   });
-
+  const [users, setUsers] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
@@ -38,9 +40,9 @@ export default function Form() {
     try {
       const formDataToSend = new FormData();
       formDataToSend.append("name", formData.name.trim());
-      
+
       const response = await fetch("/api", {
-        method: 'POST',
+        method: "POST",
         body: formDataToSend,
       });
 
@@ -51,6 +53,7 @@ export default function Form() {
         setFormData({
           name: "",
         });
+        fetchUsers();
       } else {
         setSubmitStatus("Error");
         setErrorMessage(result.error || "Something went wrong");
@@ -63,42 +66,83 @@ export default function Form() {
       setIsSubmitting(false);
     }
   };
+  async function fetchUsers() {
+    try {
+      const res = await fetch("/api");
+      const response = await res.json();
+      setUsers(response.data || []);
+      console.log(response);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const handleDelete = async (id) => {
+    await fetch(`/api/${id}`, { method: "DELETE" });
+    fetchUsers();
+    // redirect("/dashboard");
+    // router.push("/dashboard");
+  };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div>
-        <label className="block text-sm font-bold text-gray-700">Name</label>
-        <input type="text"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
-          className="w-full py-1 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none trasition text-gray-900"
-          placeholder="Name"
-          disabled={isSubmitting}
-          required
-        />
-      </div>
-      {errorMessage && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          {errorMessage}
+    <>
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label className="block text-sm font-bold text-gray-700">Name</label>
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            className="w-full py-1 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none trasition text-gray-900"
+            placeholder="Name"
+            disabled={isSubmitting}
+            required
+          />
         </div>
-      )}
-      {submitStatus === 'success' && (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-                ✓ Success.
-              </div>
-            )}
-      <div className="flex justify-center mt-5">
-        <button
-                type="submit"
-                disabled={isSubmitting}
-                className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
-                  isSubmitting
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                }`}
-        > {isSubmitting ? 'Sending...' : 'Send'} </button>
+        {errorMessage && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            {errorMessage}
+          </div>
+        )}
+        {submitStatus === "success" && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+            ✓ Success.
+          </div>
+        )}
+        <div className="flex justify-center mt-5">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
+              isSubmitting
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 text-white"
+            }`}
+          >
+            {" "}
+            {isSubmitting ? "Sending..." : "Send"}{" "}
+          </button>
+        </div>
+      </form>
+
+      <div>
+        {users.map((user) => (
+          <p key={user.id} className="py-2">
+            {user.name}
+            <button
+              onClick={() => handleDelete(user.id)}
+              className="bg-red-600 border text-white px-2 py-1 ml-10"
+            >
+              Delete
+            </button>
+          </p>
+        ))}
       </div>
-    </form>
+    </>
   );
 }
