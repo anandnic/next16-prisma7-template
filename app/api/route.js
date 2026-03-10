@@ -40,6 +40,31 @@ export async function POST(request) {
     console.error("Error creating user:", error);
   }
 }
+
 export async function GET() {
-  return NextResponse.json({ message: "Get method" });
+  try {
+    const user = await prisma.user.findMany({
+      orderBy: {
+        createdAt: 'desc',
+      },
+      select: {
+        id: true,
+        name: true,
+        updatedAt: true,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      count: user.length,
+      data: user,
+    });
+
+  } catch (error) {
+    console.error('Error retrieving user:', error);
+    return NextResponse.json(
+      { error: 'Failed to retrieve user' },
+      { status: 500 }
+    );
+  }
 }
